@@ -5,9 +5,21 @@ export default function({
   openAIkey = process.env.OPENAI_KEY,
   defaultParameters = {},
   usdSpent = 0
-} = {}) {
+}: {
+  apiUrl?: string;
+  templatesDatabaseId?: string;
+  upvotesDatabaseId?: string;
+  openAIkey?: string;
+  defaultParameters?: object;
+  usdSpent?: number;
+} = {}): {
+  usdSpent: number;
+  run: (slug: string, variables?: object, parameters?: object) => Promise<object>;
+  generate: (outputKeys: string | string[], input: object) => Promise<object>;
+  upvote: (generationId: string) => Promise<object>;
+} {
 
-  async function post(url, body) {
+  async function post(url: string, body: object) {
 
     const response = await fetch(apiUrl + url, {
       method: 'POST',
@@ -27,7 +39,7 @@ export default function({
   return {
     usdSpent,
 
-    async run(slug, variables = {}, parameters = {}) {
+    async run(slug: string, variables: object = {}, parameters: object = {}) {
       const data = await post('/run', {
         databaseId: templatesDatabaseId,
         slug,
@@ -39,7 +51,7 @@ export default function({
       return data
     },
 
-    async generate(outputKeys, input) {
+    async generate(outputKeys: string | string[], input: object) {
       if (!Array.isArray(outputKeys)) {
         outputKeys = [outputKeys]
       }
@@ -52,7 +64,7 @@ export default function({
       return data
     },
 
-    async upvote(generationId) {
+    async upvote(generationId: string) {
       const data = await post('/upvote', {
         databaseId: upvotesDatabaseId,
         generationId

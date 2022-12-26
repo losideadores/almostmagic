@@ -1,0 +1,9 @@
+{
+  "name": "aispresso",
+  "version": "0.0.1",
+  "description": "One-line interface for generating arbitrary structured data using GPT-3",
+  "main": "index.js",
+  "repository": "github.com/vzakharov/aispresso",
+  "author": "Vova @ Los Ideadores",
+  "license": "MIT"
+}

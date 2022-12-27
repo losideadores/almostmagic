@@ -1,7 +1,7 @@
 export default function({
-  apiUrl = process.env.AISPRESSO_API_URL,
-  templatesDatabaseId = process.env.AISPRESSO_TEMPLATES_DB_ID,
-  upvotesDatabaseId = process.env.AISPRESSO_UPVOTES_DB_ID,
+  apiUrl = process.env.LAMP_API_URL || 'https://ideality.app/api/lamp',
+  templatesDatabaseId = process.env.LAMP_TEMPLATES_DB_ID,
+  upvotesDatabaseId = process.env.LAMP_UPVOTES_DB_ID,
   openAIkey = process.env.OPENAI_KEY,
   defaultParameters = {},
   usdSpent = 0

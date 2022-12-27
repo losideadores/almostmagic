@@ -1,9 +1,18 @@
 {
-  "name": "aispresso",
+  "name": "rub-the-lamp",
   "version": "0.0.1",
   "description": "One-line interface for generating arbitrary structured data using GPT-3",
-  "main": "index.js",
-  "repository": "github.com/vzakharov/aispresso",
-  "author": "Vova @ Los Ideadores",
-  "license": "MIT"
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": "github.com/vzakharov/lamp",
+  "author": "vzakharov",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^18.11.18",
+    "typescript": "^4.9.4"
+  }
 }

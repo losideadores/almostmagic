@@ -1,13 +1,19 @@
-export default function ({ apiUrl, templatesDatabaseId, upvotesDatabaseId, openAIkey, defaultParameters, usdSpent }?: {
+export interface MagicConfig {
     apiUrl?: string;
     templatesDatabaseId?: string;
     upvotesDatabaseId?: string;
-    openAIkey?: string;
+    openaiKey?: string;
     defaultParameters?: object;
     usdSpent?: number;
-}): {
-    usdSpent: number;
-    run: (slug: string, variables?: object, parameters?: object) => Promise<object>;
-    generate: (outputKeys: string | string[], input: object) => Promise<object>;
-    upvote: (generationId: string) => Promise<object>;
-};
+}
+export default class Magic {
+    config: MagicConfig;
+    get usdSpent(): number | undefined;
+    set usdSpent(value: number | undefined);
+    constructor(config?: MagicConfig);
+    run(slug: string, variables?: object, parameters?: object, config?: MagicConfig): Promise<any>;
+    generate(outputKeys: string | string[], input: object, config?: MagicConfig): Promise<any>;
+    upvote(generationId: string, config?: MagicConfig): Promise<any>;
+    static create(config?: MagicConfig): Magic;
+    static generate(outputKeys: string | string[], input: object, config?: MagicConfig): Promise<any>;
+}

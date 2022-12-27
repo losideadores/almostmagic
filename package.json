@@ -1,6 +1,6 @@
 {
   "name": "almostmagic",
-  "version": "0.0.1",
+  "version": "0.0.4",
   "description": "Add AI 🪄 to your app with one line of code",
   "exports":
   {
@@ -13,14 +13,14 @@
   },
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
-  "type": "module",
+  "type": "commonjs",
   "scripts": {
     "build-mjs": "tsc -p tsconfig.mjs.json && del lib\\index.mjs && ren lib\\index.js index.mjs",
     "build-cjs": "tsc -p tsconfig.cjs.json",
     "build": "yarn run build-mjs && yarn run build-cjs",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "repository": "github.com/almostmagic/js",
+  "repository": "https://github.com/losideadores/almostmagic",
   "author": "vzakharov",
   "license": "MIT",
   "devDependencies": {

@@ -1,76 +1,107 @@
-export default function({
-  apiUrl = process.env.ALMOSTMAGIC_API_URL || 'https://ideality.app/api/polygon',
-  templatesDatabaseId = process.env.ALMOSTMAGIC_TEMPLATES_DB_ID,
-  upvotesDatabaseId = process.env.ALMOSTMAGIC_UPVOTES_DB_ID,
-  openAIkey = process.env.OPENAI_KEY,
-  defaultParameters = {},
-  usdSpent = 0
-}: {
-  apiUrl?: string;
-  templatesDatabaseId?: string;
-  upvotesDatabaseId?: string;
-  openAIkey?: string;
-  defaultParameters?: object;
-  usdSpent?: number;
-} = {}): {
-  usdSpent: number;
-  run: (slug: string, variables?: object, parameters?: object) => Promise<object>;
-  generate: (outputKeys: string | string[], input: object) => Promise<object>;
-  upvote: (generationId: string) => Promise<object>;
-} {
+const DEFAULT_URL = 'https://ideality.app/api/polygon'
 
-  async function post(url: string, body: object) {
+async function post(baseUrl: string = DEFAULT_URL, url: string, body: object) {
 
-    const response = await fetch(apiUrl + url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(body)
-    })
-    if (response.ok) {
-      return response.json()
-    } else {
-      throw new Error(response.statusText)
-    }
-  
-  }  
-
-  return {
-    usdSpent,
-
-    async run(slug: string, variables: object = {}, parameters: object = {}) {
-      const data = await post('/run', {
-        databaseId: templatesDatabaseId,
-        slug,
-        openAIkey,
-        variables,
-        parameters: { ...defaultParameters, ...parameters }
-      })
-      this.usdSpent += data.approximateCost
-      return data
+  const response = await fetch(baseUrl + url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
     },
+    body: JSON.stringify(body)
+  })
 
-    async generate(outputKeys: string | string[], input: object) {
-      if (!Array.isArray(outputKeys)) {
-        outputKeys = [outputKeys]
-      }
-
-      const data = await post('/generate', {
-        outputKeys,
-        input,
-        openAIkey,
-      })
-      this.usdSpent += data._meta.approximateCost
-      return data
-    },
-
-    async upvote(generationId: string) {
-      const data = await post('/upvote', {
-        databaseId: upvotesDatabaseId,
-        generationId
-      })
-      return data
-    }
+  if (response.ok) {
+    return response.json()
+  } else {
+    throw new Error(response.statusText)
   }
+
+}
+
+export interface MagicConfig {
+  apiUrl?: string
+  templatesDatabaseId?: string
+  upvotesDatabaseId?: string
+  openaiKey?: string
+  defaultParameters?: object
+  usdSpent?: number
+}
+
+export default class Magic {
+
+  config: MagicConfig
+  
+  // getter/setter for usdSpent (so it's easier to access for the user)
+  get usdSpent() { return this.config.usdSpent }
+  set usdSpent(value) { this.config.usdSpent = value }
+
+  constructor(config: MagicConfig = {}) {
+
+    this.config = {
+      usdSpent: 0,
+      defaultParameters: {},
+      ...config
+    }
+
+  }
+
+  async run(slug: string, variables: object = {}, parameters: object = {}, config: MagicConfig = {}) {
+
+    const c = Object.assign({}, this, config)
+    
+    const data = await post(c.apiUrl, '/run', {
+      databaseId: c.templatesDatabaseId,
+      slug,
+      openAIkey: c.openaiKey,
+      // TODO: change the way `openAIkey` is spelled on the server
+      variables,
+      parameters: { ...c.defaultParameters, ...parameters }
+    })
+
+    this.usdSpent += data.approximateCost
+
+    return data
+  }
+
+  async generate(outputKeys: string | string[], input: object, config: MagicConfig = {}) {
+
+    const c = Object.assign({}, this, config)
+
+    if (!Array.isArray(outputKeys)) {
+      outputKeys = [outputKeys]
+    }
+
+    const data = await post(c.apiUrl, '/generate', {
+      outputKeys,
+      input,
+      openAIkey: c.openaiKey,
+    })
+
+    this.usdSpent += data._meta.approximateCost
+
+    return data
+  }
+
+  async upvote(generationId: string, config: MagicConfig = {}) {
+
+    const c = Object.assign({}, this, config)
+
+    const data = await post(c.apiUrl, '/upvote', {
+      databaseId: c.upvotesDatabaseId,
+      generationId
+    })
+
+    return data
+  }
+
+  static create(config: MagicConfig = {}) {
+    return new Magic(config)
+  }
+
+  static generate(outputKeys: string | string[], input: object, config: MagicConfig = {}) {
+    // (So that you can call Magic.generate() without creating a new instance. We don't do this for run() or upvote() because they are more advanced functions, but with generate we want to give people a way to instantly "feel the magic".)
+    // We still need the "config" parameter because they will need to pass in their openaiKey.
+    return new Magic(config).generate(outputKeys, input)
+  }
+
 }

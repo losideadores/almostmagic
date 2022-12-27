@@ -47,7 +47,7 @@ export default class Magic {
 
   async run(slug: string, variables: object = {}, parameters: object = {}, config: MagicConfig = {}) {
 
-    const c = Object.assign({}, this, config)
+    const c = Object.assign({}, this.config, config)
     
     const data = await post(c.apiUrl, '/run', {
       databaseId: c.templatesDatabaseId,
@@ -65,7 +65,7 @@ export default class Magic {
 
   async generate(outputKeys: string | string[], input: object, config: MagicConfig = {}) {
 
-    const c = Object.assign({}, this, config)
+    const c = Object.assign({}, this.config, config)
 
     if (!Array.isArray(outputKeys)) {
       outputKeys = [outputKeys]
@@ -84,7 +84,7 @@ export default class Magic {
 
   async upvote(generationId: string, config: MagicConfig = {}) {
 
-    const c = Object.assign({}, this, config)
+    const c = Object.assign({}, this.config, config)
 
     const data = await post(c.apiUrl, '/upvote', {
       databaseId: c.upvotesDatabaseId,

@@ -1,7 +1,7 @@
 export default function({
-  apiUrl = process.env.LAMP_API_URL || 'https://ideality.app/api/lamp',
-  templatesDatabaseId = process.env.LAMP_TEMPLATES_DB_ID,
-  upvotesDatabaseId = process.env.LAMP_UPVOTES_DB_ID,
+  apiUrl = process.env.ALMOSTMAGIC_API_URL || 'https://ideality.app/api/almostmagic',
+  templatesDatabaseId = process.env.ALMOSTMAGIC_TEMPLATES_DB_ID,
+  upvotesDatabaseId = process.env.ALMOSTMAGIC_UPVOTES_DB_ID,
   openAIkey = process.env.OPENAI_KEY,
   defaultParameters = {},
   usdSpent = 0
@@ -59,8 +59,9 @@ export default function({
       const data = await post('/generate', {
         outputKeys,
         input,
-        openAIkey
+        openAIkey,
       })
+      this.usdSpent += data._meta.approximateCost
       return data
     },
 

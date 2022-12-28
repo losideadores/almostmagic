@@ -113,7 +113,7 @@ There is much more you can do with the API, like tweaking the parameters of the 
 
 ## Playground
 
-There’s a [playground](https://vzakharov.github.io/polygon/) where you can try some examples, generate new ones (yes, also using AI), and see the code you need to copy-paste to use whatever you come up with in your code.
+There’s a [playground](https://losideadores.github.io/almostmagic-demo/) where you can try some examples, generate new ones (yes, also using AI), and see the code you need to copy-paste to use whatever you come up with in your code.
 
 Now go on, make things, break things, and keep the fuckin’ magic alive! 🪄
 

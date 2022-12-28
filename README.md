@@ -33,7 +33,7 @@ async function go() {
   )
 
   console.log("\nHere's a stupid and funny quote by a random famous actor:\n")
-  console.log(`“${quote}” — ${voiceActor}\n\n`, { _meta })
+  console.log({ fullQuote: `“${quote}” — ${voiceActor}\n\n`, _meta })
 
   // _meta.approximateCost is in dollars, so it's also pretty cheap for simpler use cases. Thank our smart-ass GPT-3 prompt that we're keeping in a safe in a Swiss bank vault.
 
@@ -50,9 +50,9 @@ async function go() {
     "tweet",  // Note that you can pass a string instead of an array if you only want one output
     {
       author: "tibo_maker",
-      bio: `Building http://tweethunter.io & http://taplio.com 🚢 sharing all my learnings about startups & audience building 👋 Sold 2 startups, crashed way more 💪`,
+      authorBio: `Building http://tweethunter.io & http://taplio.com 🚢 sharing all my learnings about startups & audience building 👋 Sold 2 startups, crashed way more 💪`,
       topic: "getting dengue fever while nomading in Bali",
-      mood: "upbeat and very French",
+      mood: "upbeat and very French"
     } // Note that now you don't need to specify the openaiKey, because you already did it when you created the magic instance
   ).then(console.log)
 
@@ -65,6 +65,7 @@ async function go() {
     ["title", "intro", "outline"],
     {
       topic: "will AI kill us all?",
+      tone: "playful and irreverent",
       commentary: "outline must be an array of strings",
     }
   ).then(console.log)

@@ -27,8 +27,13 @@ npm install almostmagic
 One-line API:
 
 ```js
-Magic.generate(outputKeys, input, { openaiKey })
+await Magic.generate(outputKeys, input, { openaiKey })
 ```
+
+where
+* `outputKeys` is a string or an array of strings, e.g. `"tweet"` to generate a tweet or `["blogTitle", "intro", "outline"]` to generate a title, an intro, and an outline for an article.
+* `input` is an object with arbirary keys and values. For example, if you want to generate a tweet, these could refer to the author’s Twitter bio and location, etc. in the format `{ bio: "I'm a software engineer", location: "San Francisco" }`, while for an article it might be `{ topic: "JavaScript", tone: "helpful and friendly" }`.
+* `openaiKey` is your OpenAI API key (see note below).
 
 ## Examples
 

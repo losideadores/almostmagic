@@ -6,7 +6,7 @@ export interface MagicConfig {
     defaultParameters?: object;
     usdSpent?: number;
 }
-export default class Magic {
+export declare class Magic {
     config: MagicConfig;
     get usdSpent(): number | undefined;
     set usdSpent(value: number | undefined);
@@ -17,3 +17,4 @@ export default class Magic {
     static create(config?: MagicConfig): Magic;
     static generate(outputKeys: string | string[], input: object, config?: MagicConfig): Promise<any>;
 }
+export default Magic;

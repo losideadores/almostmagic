@@ -27,7 +27,7 @@ export interface MagicConfig {
   usdSpent?: number
 }
 
-export default class Magic {
+export class Magic {
 
   config: MagicConfig
   
@@ -105,3 +105,5 @@ export default class Magic {
   }
 
 }
+
+export default Magic

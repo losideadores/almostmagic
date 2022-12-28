@@ -1,4 +1,18 @@
-# It’s almost magic, dammit!
+# It’s magic! Well, almost.
+
+## What is this?
+
+**almostmagic** is a library that lets you generate text using AI. It’s a wrapper around the [OpenAI API](https://openai.com/api/), but, unlike the API, it’s easy to use and doesn’t require you to know anything about “prompt engineering.” You just use a function where you say what you want to generate and what you want to use as input, and it does the rest.
+
+This way, you can quickly integrate AI capabilities for all kinds of small things (or big things, for that matter), for example:
+
+* Building a tweet scheduler? Use **almostmagic** to provide tweet ideas for your users based on their Twitter bio.
+* Shipping a document editor? Use **almostmagic** to auto-name your users’ documents.
+* Making a to-do list app? Use **almostmagic** to suggest new tasks based on the user’s current tasks.
+
+And so on, with your own imagination being the only limit.
+
+Isn’t that magic? Well, at least almost?
 
 ## Install
 
@@ -8,90 +22,92 @@ npm install almostmagic
 
 ## Use
 
+One-line API:
+
 ```js
-const Magic = require('almostmagic').default
-// or import Magic from 'almostmagic' if you're using ES6 modules -- NOT TESTED YET!
-
-const openaiKey = "sk-..."
-// Your OpenAI (GPT-3) key, get it here: https://beta.openai.com/account/api-keys
-// We do not store your keys but only use it to make requests to the OpenAI API
-// (We also make a SHA256 hash of your key to track usage with Mixpanel)
-// You can find the server-side code here so you can be sure we're not doing anything shady: https://github.com/vzakharov/ideality-nuxt/blob/master/api/polygon/index.coffee#L340
-
-go()
-
-async function go() {
-
-  // Quote by a famous actor based on a topic
-
-  const { quote, voiceActor, _meta } = await Magic.generate(
-    ["quote", "voiceActor"], // Try making the output keys self-explanatory, so that AI can understand what you want better. 
-    {
-      topic: "something stupid and funny", // It doesn't have to be, but it's stupider and funnier this way, right?
-      commentary: "voiceActor should be a celebrity with a recognizable voice." // Note how you can use arbitrary comments to help the AI understand what you want
-    }, { openaiKey }
-  )
-
-  console.log("\nHere's a stupid and funny quote by a random famous actor:\n")
-  console.log({ fullQuote: `“${quote}” — ${voiceActor}\n\n`, _meta })
-
-  // _meta.approximateCost is in dollars, so it's also pretty cheap for simpler use cases. Thank our smart-ass GPT-3 prompt that we're keeping in a safe in a Swiss bank vault.
-
-  // You can keep track of the total cost of your requests with the `magic.usdSpent` instance property:
-  const magic = new Magic({
-    openaiKey,
-    usdSpent: _meta.approximateCost // You can instantiate the magic instance with a starting value for usdSpent, so you can track costs over multiple sessions
-  })
-
-  // Tweet based on a user handle, bio and a topic
-  console.log("\n\nHere's a tweet generated based on a user handle, bio and a topic:\n")
-
-  await magic.generate(
-    "tweet",  // Note that you can pass a string instead of an array if you only want one output
-    {
-      author: "tibo_maker",
-      authorBio: `Building http://tweethunter.io & http://taplio.com 🚢 sharing all my learnings about startups & audience building 👋 Sold 2 startups, crashed way more 💪`,
-      topic: "getting dengue fever while nomading in Bali",
-      mood: "upbeat and very French"
-    } // Note that now you don't need to specify the openaiKey, because you already did it when you created the magic instance
-  ).then(console.log)
-
-  console.log(`\nTotal cost of requests so far: $${magic.usdSpent.toFixed(2)}`)
-
-  // Blog title, intro and outline based on a topic
-  console.log("\n\nHere's a blog title, intro and outline based on a topic:\n")
-
-  await magic.generate(
-    ["title", "intro", "outline"],
-    {
-      topic: "will AI kill us all?",
-      tone: "playful and irreverent",
-      commentary: "outline must be an array of strings",
-    }
-  ).then(console.log)
-
-  console.log(`\nFinal total cost of requests: $${magic.usdSpent.toFixed(2)}`)
-  console.log(`\n\nTHAT'S RIGHT -- ${Math.round(magic.usdSpent * 10000) / 100} FUCKING CENTS TO HAVE SO MUCH FUN! IMAGINE WHAT THIS CAN DO FOR YOUR USERS!`)
-
-  console.log(`\n\nNow go and make something awesome! Here’s a playground to tweak and break things: https://vzakharov.github.io/polygon/`)
-
-}
+Magic.generate(outputKeys, input, { openaiKey })
 ```
 
-## Notes
+## Examples
 
-In case you missed it in the code above:
+### Using the class as the simplest way to generate anything
 
-* You can generate almost any text in a structured key-value format, at a ridiculously low cost. It will take like 1000 requests a day to spend the price of a cup of coffee. (At least if you're not trying to feed it with a 1000-page novel.)
+```js
+const { Magic } = require('almostmagic')
+// import Magic from 'almostmagic' // <-- if you're using ES6 modules -- NOT TESTED YET!
 
-* We use your OpenAI key to make requests to the OpenAI API. We do not store your keys butmake a SHA256 hash of it to track usage with Mixpanel. You can find the server-side code [here](https://github.com/vzakharov/ideality-nuxt/blob/master/api/polygon/index.coffee#L340) so you can be sure we're not doing anything shady.
+let { quote, voiceActor, _meta } = await Magic.generate(
+  ["quote", "voiceActor"],
+  {
+    topic: "artificial intelligence",
+    mood: "silly and funny",
+    instruction: "voiceActor should be a celebrity with a recognizable voice."
+  }, { openaiKey: 'sk-...' }
+)
 
-* There’s a [playground](https://vzakharov.github.io/polygon/) where you can try it all out. (It has another name in the header but that’s a story for another day.)
+console.log({ quote, voiceActor, _meta })
+```
 
-So, enjoy, break things, and keep the fuckin’ magic alive! 🪄
+Notes:
+* The response is an object with keys corresponding to the `outputKeys` you passed in, plus a `_meta` key with some metadata about the request.
+* The `_meta.approximateCost` property of the response object is the approximate cost of your OpenAI request **in US dollars**. We say “approximate” to avoid taking responsibility, but it’s usually pretty accurate as it’s based on the number of tokens in the prompt. Make sure to check the [Usage](https://beta.openai.com/account/usage) section of your OpenAI dashboard to see the actual cost of your requests, though.
+* For the time being, you need to have an OpenAI key to use this library (later on we will introduce our own token system). You can get one [here](https://beta.openai.com/account/api-keys). We do not store your keys but only use it to (a) make requests to the OpenAI API (b) use their SHA256 (an irreversible hash function) to track usage with Mixpanel. You can find the server-side code [here](https://github.com/vzakharov/ideality-nuxt/blob/master/api/polygon/index.coffee#L340) to be sure we’re not doing anything shady.
+* In its basic form, the API is **very** cheap. It will take like 1000 requests a day to spend the price of a cup of coffee. Note that the price depends on the amount of information you submit and ask for, so it’s not a fixed number. So, for example, generating a tweet will cost a fraction of a cent, while generating a summary of a 1000-word article will cost a few cents.
+
+Tips:
+* Try making the input and output keys self-explanatory, so that AI can understand what you want better.
+* Use `instruction` (or any other similar key) to help the AI understand what you want.
+* Experiment adding other keys to the input object, like `language` or `intent` or whatever you can think of, or to the output keys, e.g. `explanation` or `emoji`.
+
+¹ Imports and splitting code into several lines for readability doesn’t count as multiple lines, right? Right?
+
+### Using an instance for tracking costs and avoiding passing the key every time
+
+
+```js
+const magic = new Magic({
+  openaiKey: 'sk-...'
+})
+
+
+let reponse = await magic.generate(
+  "tweet",
+  {
+    author: "tibo_maker",
+    authorBio: `Building http://tweethunter.io & http://taplio.com 🚢 sharing all my learnings about startups & audience building 👋 Sold 2 startups, crashed way more 💪`,
+    topic: "getting dengue fever while nomading in Bali",
+    mood: "upbeat and very French"
+  }
+)
+
+console.log(response)
+
+response = await magic.generate(
+  ["title", "intro", "outline"],
+  {
+    topic: "will AI kill us all?",
+    tone: "playful and irreverent",
+    commentary: "outline must be an array of strings",
+  }
+)
+
+console.log(response)
+
+console.log(`\nTotal cost of requests so far: $${magic.usdSpent.toFixed(2)}`)
+```
+
+Notes:
+* You can initialize the `Magic` class with an `openaiKey` and a `usdSpent` property, so you can keep track of the total cost of your requests across sessions (e.g. take them from localStorage, a database, etc.), and avoid passing the key every time.
+* You can use a string instead of an array if you only want one output. Note that the result will still be an object with `[yourKey]` and `_meta` keys (for consistency).
+
+### Advanced usage
+
+There is much more you can do with the API, like tweaking the parameters of the OpenAI request and even writing your own sophisticated prompts with `{{placeholders}}` used to insert the input values — but that’s a story for another day. Watch this repo for updates!
+
+## Playground
+
+There’s a [playground](https://vzakharov.github.io/polygon/) where you can try some examples, generate new ones (yes, also using AI), and see the code you need to copy-paste to use whatever you come up with in your code.
+
+Now go on, make things, break things, and keep the fuckin’ magic alive! 🪄
 
 ~[Vova](https://twitter.com/vovahimself) and [David](https://twitter.com/davipar) (with a lot of help from [Dima](https://twitter.com/dchest))
-
----
-
-# For the most vigilant: **[Playground](https://vzakharov.github.io/polygon/)** to try it out.

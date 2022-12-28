@@ -86,9 +86,12 @@ In case you missed it in the code above:
 
 * We use your OpenAI key to make requests to the OpenAI API. We do not store your keys butmake a SHA256 hash of it to track usage with Mixpanel. You can find the server-side code [here](https://github.com/vzakharov/ideality-nuxt/blob/master/api/polygon/index.coffee#L340) so you can be sure we're not doing anything shady.
 
-* There’s a [playground](https://vzakharov.github.io/polygon/) where you can try out the prompts and see how they work. (It has another name in the header but that’s a story for another day.)
+* There’s a [playground](https://vzakharov.github.io/polygon/) where you can try it all out. (It has another name in the header but that’s a story for another day.)
 
 So, enjoy, break things, and keep the fuckin’ magic alive! 🪄
 
-
 ~[Vova](https://twitter.com/vovahimself) and [David](https://twitter.com/davipar) (with a lot of help from [Dima](https://twitter.com/dchest))
+
+---
+
+# For the most vigilant: **[Playground](https://vzakharov.github.io/polygon/)** to try it out.

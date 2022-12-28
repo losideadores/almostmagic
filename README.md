@@ -2,7 +2,7 @@
 
 ## What is this?
 
-**almostmagic** is a library that lets you generate *structured* string data using AI with a single (okay, maybe two) lines of code.
+**almostmagic** is a library that lets you generate *structured* string data using AI with a single Line of code (okay, maybe two lines).
 
 Under the hood, the library is a wrapper around the [OpenAI API](https://openai.com/api/), but, unlike the API, it’s easy to use and doesn’t require you to know anything about “prompt engineering.” You just use a function where you say what you want to generate and what you want to use as input, and it does the rest.
 

@@ -2,7 +2,9 @@
 
 ## What is this?
 
-**almostmagic** is a library that lets you generate text using AI. It’s a wrapper around the [OpenAI API](https://openai.com/api/), but, unlike the API, it’s easy to use and doesn’t require you to know anything about “prompt engineering.” You just use a function where you say what you want to generate and what you want to use as input, and it does the rest.
+**almostmagic** is a library that lets you generate *structured* string data using AI with a single (okay, maybe two) lines of code.
+
+Under the hood, the library is a wrapper around the [OpenAI API](https://openai.com/api/), but, unlike the API, it’s easy to use and doesn’t require you to know anything about “prompt engineering.” You just use a function where you say what you want to generate and what you want to use as input, and it does the rest.
 
 This way, you can quickly integrate AI capabilities for all kinds of small things (or big things, for that matter), for example:
 

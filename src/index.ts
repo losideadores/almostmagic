@@ -2,6 +2,8 @@ const DEFAULT_URL = 'https://ideality.app/api/polygon'
 
 async function post(baseUrl: string = DEFAULT_URL, url: string, body: object) {
 
+  // console.log('POST', baseUrl + url, body)
+
   const response = await fetch(baseUrl + url, {
     method: 'POST',
     headers: {
@@ -9,6 +11,8 @@ async function post(baseUrl: string = DEFAULT_URL, url: string, body: object) {
     },
     body: JSON.stringify(body)
   })
+
+  // console.log('response', response)
 
   if (response.ok) {
     return response.json()
@@ -64,18 +68,14 @@ export class Magic {
     return data
   }
 
-  async generate(outputKeys: string | string[], input: object, config: MagicConfig = {}) {
+  async generate(output: string | string[] | object, input?: object, config: MagicConfig = {}) {
 
     const c = Object.assign({}, this.config, config)
-
-    if (!Array.isArray(outputKeys)) {
-      outputKeys = [outputKeys]
-    }
 
     const { keyForGuidelines } = config
 
     const data = await post(c.apiUrl, '/generate', {
-      outputKeys,
+      output,
       input,
       openAIkey: c.openaiKey,
       ...keyForGuidelines ? { keyForGuidelines } : {}

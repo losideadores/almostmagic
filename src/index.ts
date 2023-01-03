@@ -68,14 +68,14 @@ export class Magic {
     return data
   }
 
-  async generate(output: string | string[] | object, input?: object, config: MagicConfig = {}) {
+  async generate(outputKeys: string | string[] | object, input?: object, config: MagicConfig = {}) {
 
     const c = Object.assign({}, this.config, config)
 
     const { keyForGuidelines } = config
 
     const data = await post(c.apiUrl, '/generate', {
-      output,
+      outputKeys,
       input,
       openAIkey: c.openaiKey,
       ...keyForGuidelines ? { keyForGuidelines } : {}

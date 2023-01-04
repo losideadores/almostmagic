@@ -17,9 +17,16 @@ async function post(baseUrl: string = DEFAULT_URL, url: string, body: object) {
   if (response.ok) {
     return response.json()
   } else {
-    throw new Error(response.statusText)
+    throw new Error(response.statusText) 
   }
 
+}
+
+export interface MagicSpecs {
+  // output keys (optional)
+  outputKeys?: object | string[] | string
+  // And anything else
+  [key: string]: any
 }
 
 export interface MagicConfig {
@@ -27,14 +34,18 @@ export interface MagicConfig {
   templatesDatabaseId?: string
   upvotesDatabaseId?: string
   openaiKey?: string
-  defaultParameters?: object
+  parameters?: object
   usdSpent?: number
   keyForGuidelines?: string
+  outputKeys?: object
+  specs?: MagicSpecs
+  examples?: object[]
 }
 
 export class Magic {
 
   config: MagicConfig
+  lastMeta: object | null = null
   
   // getter/setter for usdSpent (so it's easier to access for the user)
   get usdSpent() { return this.config.usdSpent }
@@ -44,13 +55,13 @@ export class Magic {
 
     this.config = {
       usdSpent: 0,
-      defaultParameters: {},
+      parameters: {},
       ...config
     }
 
   }
 
-  async run(slug: string, variables: object = {}, parameters: object = {}, config: MagicConfig = {}) {
+  async runCustom(slug: string, variables: object = {}, parameters: object = {}, config: MagicConfig = {}) {
 
     const c = Object.assign({}, this.config, config)
     
@@ -60,30 +71,47 @@ export class Magic {
       openAIkey: c.openaiKey,
       // TODO: change the way `openAIkey` is spelled on the server
       variables,
-      parameters: { ...c.defaultParameters, ...parameters }
+      parameters: { ...c.parameters, ...parameters }
     })
-
-    this.usdSpent += data.approximateCost
+    
+    const { approximateCost, tokenCount } = data
+    this.usdSpent += approximateCost
+    this.lastMeta = { approximateCost, tokenCount }
 
     return data
   }
 
-  async generate(outputKeys: string | string[] | object, input?: object, config: MagicConfig = {}) {
+  async generate(outputKeys: string | string[] | object, input?: any, config: MagicConfig = {}) {
 
     const c = Object.assign({}, this.config, config)
 
-    const { keyForGuidelines } = config
+    const { keyForGuidelines, specs, examples, parameters } = c
 
     const data = await post(c.apiUrl, '/generate', {
       outputKeys,
       input,
       openAIkey: c.openaiKey,
+      specs,
+      examples,
+      parameters,
       ...keyForGuidelines ? { keyForGuidelines } : {}
     })
+    
+    const { approximateCost, tokenCount } = data._meta || data
+    this.usdSpent += approximateCost
+    this.lastMeta = { approximateCost, tokenCount }
 
-    this.usdSpent += data._meta.approximateCost
+    return data._meta ? data : data.choices
+  }
 
-    return data
+  async run(input?: any) {
+    // Runs generate with the config's specs' outputKeys, if any.
+    const { outputKeys } = this.config.specs || {}
+    if (!outputKeys) throw new Error('No outputKeys in specs. Instantiate Magic with { specs: { outputKeys: ... } } if you want to use run().')
+    const keys =
+      // Must be an array, so if it's a string, make it an array, and if it's an object, get the keys.
+      typeof outputKeys === 'string' ? [outputKeys] : Array.isArray(outputKeys) ? outputKeys : Object.keys(outputKeys)
+    return this.generate(keys, input)
   }
 
   async upvote(generationId: string, config: MagicConfig = {}) {

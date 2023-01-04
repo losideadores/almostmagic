@@ -42,7 +42,7 @@ export interface MagicConfig {
   examples?: object[]
 }
 
-export class Magic {
+export class PlainMagic {
 
   config: MagicConfig
   lastMeta: object | null = null
@@ -61,7 +61,7 @@ export class Magic {
 
   }
 
-  async runCustom(slug: string, variables: object = {}, parameters: object = {}, config: MagicConfig = {}) {
+  async run(slug: string, variables: object = {}, parameters: object = {}, config: MagicConfig = {}) {
 
     const c = Object.assign({}, this.config, config)
     
@@ -104,7 +104,7 @@ export class Magic {
     return data._meta ? data : data.choices
   }
 
-  async run(input?: any) {
+  async generateFor(input?: any) {
     // Runs generate with the config's specs' outputKeys, if any.
     const { outputKeys } = this.config.specs || {}
     if (!outputKeys) throw new Error('No outputKeys in specs. Instantiate Magic with { specs: { outputKeys: ... } } if you want to use run().')
@@ -127,15 +127,39 @@ export class Magic {
   }
 
   static create(config: MagicConfig = {}) {
-    return new Magic(config)
+    return new PlainMagic(config)
   }
 
   static generate(outputKeys: string | string[], input: object, config: MagicConfig = {}) {
     // (So that you can call Magic.generate() without creating a new instance. We don't do this for run() or upvote() because they are more advanced functions, but with generate we want to give people a way to instantly "feel the magic".)
     // We still need the "config" parameter because they will need to pass in their openaiKey.
-    return new Magic(config).generate(outputKeys, input)
+    return new PlainMagic(config).generate(outputKeys, input)
   }
 
 }
 
-export default Magic
+export default class Magic {
+  // Same, but instead of requiring the user to use 'instance.generateFor()', they can just use 'instance()'.
+
+  constructor(config: MagicConfig = {}) {
+
+    const magic = new PlainMagic(config)
+
+    const _this = function (input?: any) {
+      return magic.generateFor(input)
+    }
+      
+    // Assign all the properties from magic to _this.
+    Object.assign(_this, magic)
+
+    // Copy all the properties from Magic.prototype to _this.
+    Object.getOwnPropertyNames(PlainMagic.prototype).forEach(key => {
+      const descriptor = Object.getOwnPropertyDescriptor(PlainMagic.prototype, key)
+      if (descriptor) Object.defineProperty(_this, key, descriptor)
+    })
+
+    return _this
+
+  }
+
+}

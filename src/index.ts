@@ -39,6 +39,7 @@ export interface MagicConfig {
   outputKeys?: object
   specs?: MagicSpecs
   examples?: object[]
+  retries?: number
 }
 
 export default class Magic {
@@ -90,7 +91,7 @@ export default class Magic {
 
     const c = Object.assign({}, this.config, config)
 
-    const { specs, examples, parameters } = c
+    const { specs, examples, parameters, retries } = c
 
     if ( !outputKeysPassed && !specs?.outputKeys ) 
       throw new Error('You must either pass in an outputKeys parameter, or instantiate Magic with { specs: { outputKeys: [...] } }')
@@ -102,6 +103,7 @@ export default class Magic {
       specs,
       examples,
       parameters,
+      retries
     })
 
     const { approximateCost, tokenCount } = data._meta || data

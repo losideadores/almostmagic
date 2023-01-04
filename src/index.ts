@@ -36,13 +36,12 @@ export interface MagicConfig {
   openaiKey?: string
   parameters?: object
   usdSpent?: number
-  keyForGuidelines?: string
   outputKeys?: object
   specs?: MagicSpecs
   examples?: object[]
 }
 
-export class PlainMagic {
+export default class Magic {
 
   config: MagicConfig
   lastMeta: object | null = null
@@ -81,11 +80,20 @@ export class PlainMagic {
     return data
   }
 
-  async generate(outputKeys: string | string[] | object, input?: any, config: MagicConfig = {}) {
+  async generate(outputKeys: string | string[], input?: object | null, config?: MagicConfig ): Promise<any>
+  async generate(input?: object | null, config?: MagicConfig ): Promise<any>
+  async generate(outputKeys_or_input?: string | string[] | object | null, input_or_config: object | null | MagicConfig = null, config_or_nothing: MagicConfig = {}) {
+
+    const outputKeysPassed = typeof outputKeys_or_input === 'string' || Array.isArray(outputKeys_or_input)
+
+    const [ outputKeys, input, config ] = outputKeysPassed ? [ outputKeys_or_input, input_or_config, config_or_nothing ] : [ '', outputKeys_or_input, input_or_config ]
 
     const c = Object.assign({}, this.config, config)
 
-    const { keyForGuidelines, specs, examples, parameters } = c
+    const { specs, examples, parameters } = c
+
+    if ( !outputKeysPassed && !specs?.outputKeys ) 
+      throw new Error('You must either pass in an outputKeys parameter, or instantiate Magic with { specs: { outputKeys: [...] } }')
 
     const data = await post(c.apiUrl, '/generate', {
       outputKeys,
@@ -94,24 +102,13 @@ export class PlainMagic {
       specs,
       examples,
       parameters,
-      ...keyForGuidelines ? { keyForGuidelines } : {}
     })
-    
+
     const { approximateCost, tokenCount } = data._meta || data
     this.usdSpent += approximateCost
     this.lastMeta = { approximateCost, tokenCount }
 
     return data._meta ? data : data.choices
-  }
-
-  async generateFor(input?: any) {
-    // Runs generate with the config's specs' outputKeys, if any.
-    const { outputKeys } = this.config.specs || {}
-    if (!outputKeys) throw new Error('No outputKeys in specs. Instantiate Magic with { specs: { outputKeys: ... } } if you want to use run().')
-    const keys =
-      // Must be an array, so if it's a string, make it an array, and if it's an object, get the keys.
-      typeof outputKeys === 'string' ? [outputKeys] : Array.isArray(outputKeys) ? outputKeys : Object.keys(outputKeys)
-    return this.generate(keys, input)
   }
 
   async upvote(generationId: string, config: MagicConfig = {}) {
@@ -127,39 +124,13 @@ export class PlainMagic {
   }
 
   static create(config: MagicConfig = {}) {
-    return new PlainMagic(config)
+    return new Magic(config)
   }
 
   static generate(outputKeys: string | string[], input: object, config: MagicConfig = {}) {
     // (So that you can call Magic.generate() without creating a new instance. We don't do this for run() or upvote() because they are more advanced functions, but with generate we want to give people a way to instantly "feel the magic".)
     // We still need the "config" parameter because they will need to pass in their openaiKey.
-    return new PlainMagic(config).generate(outputKeys, input)
-  }
-
-}
-
-export default class Magic {
-  // Same, but instead of requiring the user to use 'instance.generateFor()', they can just use 'instance()'.
-
-  constructor(config: MagicConfig = {}) {
-
-    const magic = new PlainMagic(config)
-
-    const _this = function (input?: any) {
-      return magic.generateFor(input)
-    }
-      
-    // Assign all the properties from magic to _this.
-    Object.assign(_this, magic)
-
-    // Copy all the properties from Magic.prototype to _this.
-    Object.getOwnPropertyNames(PlainMagic.prototype).forEach(key => {
-      const descriptor = Object.getOwnPropertyDescriptor(PlainMagic.prototype, key)
-      if (descriptor) Object.defineProperty(_this, key, descriptor)
-    })
-
-    return _this
-
+    return new Magic(config).generate(outputKeys, input)
   }
 
 }

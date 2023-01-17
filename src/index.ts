@@ -45,6 +45,7 @@ export interface MagicConfig extends MagicCostContainer {
   examples?: object[]
   retries?: number
   alwaysReturnObject?: boolean
+  validateOutput?: (data: any) => boolean | void
 }
 
 export default class Magic {
@@ -56,7 +57,7 @@ export default class Magic {
   get usdSpent() { return ( this.config.externalCostContainer || this.config ).usdSpent }
   set usdSpent(value) { if ( this.config.externalCostContainer ) this.config.externalCostContainer.usdSpent = value; else this.config.usdSpent = value }
 
-  constructor(config: MagicConfig = { usdSpent: 0 }) {
+  constructor(config: MagicConfig = { usdSpent: 0, retries: 2 }) {
 
     this.config = {
       parameters: {},
@@ -82,6 +83,8 @@ export default class Magic {
     this.usdSpent += approximateCost
     this.lastMeta = { approximateCost, tokenCount }
 
+    // TODO: add validate for run() as well
+
     return data
   }
 
@@ -100,30 +103,73 @@ export default class Magic {
     if ( !outputKeysPassed && !specs?.outputKeys ) 
       throw new Error('You must either pass in an outputKeys parameter, or instantiate Magic with { specs: { outputKeys: [...] } }')
 
-    let data = await post(c.apiUrl, '/generate', {
-      outputKeys,
-      input,
-      openAIkey: c.openaiKey,
-      specs,
-      examples,
-      parameters,
-      retries
-    })
+    // const go = async (retriesLeft: number = retries || 2 ) => {
+    const go: ( lastArray?: any[], retriesLeft?: number ) => Promise<any> = async ( lastArray = [], retriesLeft = retries || 2 ) => {
 
-    const { approximateCost, tokenCount } = data._meta || data
-    this.usdSpent += approximateCost
-    this.lastMeta = { approximateCost, tokenCount }
+      let data = await post(c.apiUrl, '/generate', {
+        outputKeys,
+        input,
+        openAIkey: c.openaiKey,
+        specs,
+        examples,
+        parameters,
+        retries
+      })
 
-    data = data._meta ? data : data.choices
-    
-    // If there was just one output key, return the value instead of the object (or array of values instead of array of objects, if there are multiple choices)
-    if ( outputKeysPassed && typeof outputKeys === 'string' && !c.alwaysReturnObject ) {
-      // We can't just use outputKeys as a key because the server camelCases it, so we have to just take the only key from the object
-      const onlyValue = (object: object) => (object as { [key: string]: any })[Object.keys(object)[0]]
-      data = Array.isArray(data) ? data.map(d => onlyValue(d)) : onlyValue(data)
+      const { approximateCost, tokenCount } = data._meta || data
+      this.usdSpent += approximateCost
+      this.lastMeta = { approximateCost, tokenCount }
+
+      data = data._meta ? data : data.choices
+      
+      // If there was just one output key, return the value instead of the object (or array of values instead of array of objects, if there are multiple choices)
+      if ( outputKeysPassed && typeof outputKeys === 'string' && !c.alwaysReturnObject ) {
+        // We can't just use outputKeys as a key because the server camelCases it, so we have to just take the only key from the object
+        const onlyValue = (object: object) => (object as { [key: string]: any })[Object.keys(object)[0]]
+        data = Array.isArray(data) ? data.map(d => onlyValue(d)) : onlyValue(data)
+      }
+
+      // console.debug('Data:', data)
+
+      if ( c.validateOutput ) {
+
+        const { validateOutput } = c
+        
+        const isValid: (data: any) => boolean = (data) => {
+          try {
+            return validateOutput(data) !== false
+          } catch (e: any) {
+            if ( retriesLeft > 0 )
+              console.warn(e)
+            return false
+          }
+        }
+
+        if ( Array.isArray(data) ) {
+          data = [...lastArray, ...data.filter(isValid)]
+          // console.debug('Data after validation:', data)
+          if ( data.length > 0 )
+            return data
+        } else if ( isValid(data) ) {
+          return data
+        }
+
+        if ( retriesLeft > 0 ) {
+          console.warn('Validation failed:', data)
+          console.warn('Retrying...')
+          return go(data, retriesLeft - 1)
+        } else {
+          throw new Error('Validation failed: ' + data)
+        }
+
+      } else return data
+
     }
 
-    return data
+    const result = await go()
+    // console.debug('Final result:', result)
+    return result
+
   }
 
   async upvote(generationId: string, config?: MagicConfig) {

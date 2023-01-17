@@ -45,7 +45,7 @@ export interface MagicConfig extends MagicCostContainer {
   examples?: object[]
   retries?: number
   alwaysReturnObject?: boolean
-  validateOutput?: (data: any) => boolean | void
+  postprocess?: (data: any) => any
 }
 
 export default class Magic {
@@ -131,36 +131,36 @@ export default class Magic {
 
       // console.debug('Data:', data)
 
-      if ( c.validateOutput ) {
+      if ( c.postprocess ) {
 
-        const { validateOutput } = c
+        const { postprocess } = c
         
-        const isValid: (data: any) => boolean = (data) => {
+        const processed: (data: any) => any = (data) => {
           try {
-            return validateOutput(data) !== false
+            // Create a dataWithoutMeta object that doesn't have the _meta property
+            const { _meta, ...dataWithoutMeta } = data
+            // Postprocess the data, and then add the _meta property back
+            return { ...postprocess(dataWithoutMeta), _meta }
           } catch (e: any) {
             if ( retriesLeft > 0 )
               console.warn(e)
-            return false
           }
         }
 
         if ( Array.isArray(data) ) {
-          data = [...lastArray, ...data.filter(isValid)]
-          // console.debug('Data after validation:', data)
-          if ( data.length > 0 )
-            return data
-        } else if ( isValid(data) ) {
-          return data
+          data = [...lastArray, ...data.map(processed).filter(d => d !== undefined)]
+        } else {
+          data = processed(data)
         }
 
-        if ( retriesLeft > 0 ) {
-          console.warn('Validation failed:', data)
-          console.warn('Retrying...')
-          return go(data, retriesLeft - 1)
-        } else {
-          throw new Error('Validation failed: ' + data)
-        }
+        if ( data === undefined ) {
+          if ( retriesLeft > 0 ) {
+            console.warn('Retrying...')
+            return go(data, retriesLeft - 1)
+          } else {
+            throw new Error('Postprocess function returned undefined')
+          }
+        } else return data
 
       } else return data
 

@@ -23,8 +23,8 @@ async function post(baseUrl: string = DEFAULT_URL, url: string, body: object) {
 }
 
 export interface MagicSpecs {
-  // output keys (optional)
-  outputKeys?: object | string[] | string
+  // returns (optional)
+  returns?: object | string[] | string
   // And anything else
   [key: string]: any
 }
@@ -40,7 +40,8 @@ export interface MagicConfig extends MagicCostContainer {
   openaiKey?: string
   parameters?: object
   externalCostContainer?: MagicCostContainer
-  outputKeys?: object
+  returns?: object
+  outputKeys?: object // For backwards compatibility
   specs?: MagicSpecs
   examples?: object[]
   retries?: number
@@ -59,9 +60,15 @@ export default class Magic {
 
   constructor(config: MagicConfig = { usdSpent: 0, retries: 2 }) {
 
+    // Rename outputKeys to returns and show a deprecation warning
+    if ( config.outputKeys ) {
+      console.warn('Magic: `outputKeys` is deprecated and will be removed in a future version. Please use `returns` instead.')
+    }
+
     this.config = {
       parameters: {},
-      ...config
+      ...config,
+      returns: config.returns || config.outputKeys
     }
 
   }
@@ -88,26 +95,26 @@ export default class Magic {
     return data
   }
 
-  async generate(outputKeys: string | string[], input?: object | null, config?: MagicConfig ): Promise<any>
+  async generate(returns: string | string[], input?: object | null, config?: MagicConfig ): Promise<any>
   async generate(input?: object | null, config?: MagicConfig ): Promise<any>
-  async generate(outputKeys_or_input?: string | string[] | object | null, input_or_config: object | MagicConfig | null = null, config_or_nothing?: MagicConfig) {
+  async generate(returns_or_input?: string | string[] | object | null, input_or_config: object | MagicConfig | null = null, config_or_nothing?: MagicConfig) {
 
-    const outputKeysPassed = typeof outputKeys_or_input === 'string' || Array.isArray(outputKeys_or_input)
+    const returnsPassed = typeof returns_or_input === 'string' || Array.isArray(returns_or_input)
 
-    const [ outputKeys, input, config ] = outputKeysPassed ? [ outputKeys_or_input, input_or_config, config_or_nothing ] : [ '', outputKeys_or_input, input_or_config ]
+    const [ returns, input, config ] = returnsPassed ? [ returns_or_input, input_or_config, config_or_nothing ] : [ '', returns_or_input, input_or_config ]
 
     const c = Object.assign({}, this.config, config)
 
     const { specs, examples, parameters, retries } = c
 
-    if ( !outputKeysPassed && !specs?.outputKeys ) 
-      throw new Error('You must either pass in an outputKeys parameter, or instantiate Magic with { specs: { outputKeys: [...] } }')
+    if ( !returnsPassed && !specs?.returns ) 
+      throw new Error('You must either pass in an returns parameter, or instantiate Magic with { specs: { returns: [...] } }')
 
     // const go = async (retriesLeft: number = retries || 2 ) => {
     const go: ( lastArray?: any[], retriesLeft?: number ) => Promise<any> = async ( lastArray = [], retriesLeft = retries || 2 ) => {
 
       let data = await post(c.apiUrl, '/generate', {
-        outputKeys,
+        returns,
         input,
         openAIkey: c.openaiKey,
         specs,
@@ -122,9 +129,9 @@ export default class Magic {
 
       data = data._meta ? data : data.choices
       
-      // If there was just one output key, return the value instead of the object (or array of values instead of array of objects, if there are multiple choices)
-      if ( outputKeysPassed && typeof outputKeys === 'string' && !c.alwaysReturnObject ) {
-        // We can't just use outputKeys as a key because the server camelCases it, so we have to just take the only key from the object
+      // If there was just one return, return the value instead of the object (or array of values instead of array of objects, if there are multiple choices)
+      if ( returnsPassed && typeof returns === 'string' && !c.alwaysReturnObject ) {
+        // We can't just use returns as a key because the server camelCases it, so we have to just take the only key from the object
         const onlyValue = (object: object) => (object as { [key: string]: any })[Object.keys(object)[0]]
         data = Array.isArray(data) ? data.map(d => onlyValue(d)) : onlyValue(data)
       }
@@ -188,10 +195,10 @@ export default class Magic {
     return new Magic(config)
   }
 
-  static generate(outputKeys: string | string[], input: object, config?: MagicConfig) {
+  static generate(returns: string | string[], input: object, config?: MagicConfig) {
     // (So that you can call Magic.generate() without creating a new instance. We don't do this for run() or upvote() because they are more advanced functions, but with generate we want to give people a way to instantly "feel the magic".)
     // We still need the "config" parameter because they will need to pass in their openaiKey.
-    return new Magic(config).generate(outputKeys, input)
+    return new Magic(config).generate(returns, input)
   }
 
 }

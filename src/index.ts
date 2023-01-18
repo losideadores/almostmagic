@@ -160,7 +160,7 @@ export default class Magic {
           data = processed(data)
         }
 
-        if ( data === undefined ) {
+        if ( data === undefined || Array.isArray(data) && data.length === 0 ) {
           if ( retriesLeft > 0 ) {
             console.warn('Retrying...')
             return go(data, retriesLeft - 1)

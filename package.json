@@ -1,6 +1,6 @@
 {
   "name": "almostmagic",
-  "version": "0.0.15",
+  "version": "0.0.16",
   "description": "Add AI 🪄 to your app with one line of code",
   "exports": {
     ".": {

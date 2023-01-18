@@ -1,9 +1,8 @@
 {
   "name": "almostmagic",
-  "version": "0.0.14",
+  "version": "0.0.15",
   "description": "Add AI 🪄 to your app with one line of code",
-  "exports":
-  {
+  "exports": {
     ".": {
       "types": "./lib/index.d.ts",
       "import": "./lib/index.mjs",

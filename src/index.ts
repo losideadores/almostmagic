@@ -49,6 +49,11 @@ export interface MagicConfig extends MagicCostContainer {
   postprocess?: (data: any) => any
 }
 
+const defaultConfig: MagicConfig = {
+  usdSpent: 0,
+  retries: 2
+}
+
 export default class Magic {
 
   config: MagicConfig
@@ -58,7 +63,9 @@ export default class Magic {
   get usdSpent() { return ( this.config.externalCostContainer || this.config ).usdSpent }
   set usdSpent(value) { if ( this.config.externalCostContainer ) this.config.externalCostContainer.usdSpent = value; else this.config.usdSpent = value }
 
-  constructor(config: MagicConfig = { usdSpent: 0, retries: 2 }) {
+  constructor(config: MagicConfig = defaultConfig) {
+
+    config = { ...defaultConfig, ...config }
 
     // Rename outputKeys to returns and show a deprecation warning
     if ( config.outputKeys ) {

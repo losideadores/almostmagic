@@ -22,36 +22,54 @@ async function post(baseUrl: string = DEFAULT_URL, url: string, body: object) {
 
 }
 
+export interface MagicReturnValueObject {
+  description: string
+  optional: boolean 
+}
+
+export interface MagicReturnObject {
+  [key: string]: string | MagicReturnValueObject
+}
+
+export type MagicReturns = MagicReturnObject | string[] | string
+
 export interface MagicSpecs {
   // returns (optional)
-  returns?: object | string[] | string
+  // returns?: MagicReturnObject | string[] | string
+  returns?: MagicReturns
   // And anything else
   [key: string]: any
 }
 
 export interface MagicCostContainer {
-  usdSpent: number
+  usdSpent?: number
 }
 
 export interface MagicConfig extends MagicCostContainer {
+  alwaysReturnObject?: boolean
   apiUrl?: string
+  descriptor?: string
+  examples?: object[]
+  externalCostContainer?: MagicCostContainer
+  ignoreAmbiguityWarnings?: boolean
+  openaiKey?: string
+  optionalReturns?: string[] | true
+  outputKeys?: object // For backwards compatibility
+  parameters?: object
+  postprocess?: (data: any) => any
+  retries?: number
+  specs?: MagicSpecs
   templatesDatabaseId?: string
   upvotesDatabaseId?: string
-  openaiKey?: string
-  parameters?: object
-  externalCostContainer?: MagicCostContainer
-  returns?: object
-  outputKeys?: object // For backwards compatibility
-  specs?: MagicSpecs
-  examples?: object[]
-  retries?: number
-  alwaysReturnObject?: boolean
-  postprocess?: (data: any) => any
 }
 
 const defaultConfig: MagicConfig = {
   usdSpent: 0,
   retries: 2
+}
+
+export interface ForkOptions {
+  mergeSpecs?: boolean
 }
 
 export default class Magic {
@@ -75,20 +93,18 @@ export default class Magic {
     this.config = {
       parameters: {},
       ...config,
-      returns: config.returns || config.outputKeys
     }
 
   }
 
-  async run(slug: string, variables: object = {}, parameters: object = {}, config?: MagicConfig) {
+  async run(slug: string, variables: object = {}, parameters: object = {}, config?: MagicConfig): Promise<any> {
 
     const c = Object.assign({}, this.config, config)
     
     const data = await post(c.apiUrl, '/run', {
       databaseId: c.templatesDatabaseId,
       slug,
-      openAIkey: c.openaiKey,
-      // TODO: change the way `openAIkey` is spelled on the server
+      openaiKey: c.openaiKey,
       variables,
       parameters: { ...c.parameters, ...parameters }
     })
@@ -102,31 +118,91 @@ export default class Magic {
     return data
   }
 
-  async generate(returns: string | string[], input?: object | null, config?: MagicConfig ): Promise<any>
-  async generate(input?: object | null, config?: MagicConfig ): Promise<any>
-  async generate(returns_or_input?: string | string[] | object | null, input_or_config: object | MagicConfig | null = null, config_or_nothing?: MagicConfig) {
+  generateFor(input: object, config?: MagicConfig): Promise<any> {
+    if ( !this.config.specs?.returns ) {
+      throw new Error('Magic: `magic.for(...)` can only be used if `magic.config.specs.returns` is set (either during instantiation or later with `magic.config.specs = { returns: ... }`')
+    }
+    return this.generate(input, { ...(config || {}), ignoreAmbiguityWarnings: true })
+  }
 
-    const returnsPassed = typeof returns_or_input === 'string' || Array.isArray(returns_or_input)
+  // We can run generate in three ways:
+  // 1. ( inputs?, config? ), if specs.returns is set
+  // 2. ( returns, inputs?, config? ), if specs.returns is not set
+  // So we can have 0, 1, 2 or 3 parameters:
+  // 0: inputs are {} and config is taken from the instance
+  // - if specs.returns is not set, throw an error saying that you must pass in returns either as the first parameter or in the config.specs.returns
+  // 1:
+  // - ( inputs ) if specs.returns is set
+  // - ( returns ) otherwise
+  // - { config } = this
+  // 2:
+  // - ( inputs, config ) if specs.returns is set
+  // - ( returns, inputs ) otherwise; { config } = this
+  // 3:
+  // - ( returns, inputs, config )
+  // - Throw an error if specs.returns is set, saying that you can't pass in returns twice
+  async generate(input?: object | null, config?: MagicConfig): Promise<any>
+  async generate(returns: MagicReturns, input?: object | null, config?: MagicConfig ): Promise<any>
+  async generate(returns_or_input?: MagicReturns | object | null, input_or_config: object | MagicConfig | null = null, config_or_nothing?: MagicConfig) {
 
-    const [ returns, input, config ] = returnsPassed ? [ returns_or_input, input_or_config, config_or_nothing ] : [ '', returns_or_input, input_or_config ]
+    let input: object = {}
+    let { config } = this
+    let { returns } = this.config?.specs || {}
+
+    switch ( arguments.length ) {
+      case 0:
+        if ( returns ) {
+          // Keeping for easier comparing to other cases 
+        } else {
+          throw new Error('You must either pass in an returns parameter, or instantiate Magic with { specs: { returns: ... } }')
+        }
+        break
+      case 1:
+        if ( returns ) {
+          input = returns_or_input as object
+          if (!config.ignoreAmbiguityWarnings)
+            console.warn('Magic: Treating the parameter as `input`. To avoid misinterpreting it as `returns`, consider using `magic.generateFor(input)` instead.')
+        } else {
+          returns = returns_or_input as MagicReturns
+        }
+        break
+      case 2:
+        if ( returns ) {
+          input = returns_or_input as object
+          config = input_or_config as MagicConfig
+          if (!config.ignoreAmbiguityWarnings)
+            console.warn('Magic: Treating first parameter as `input`, and second parameter as `config`, taking `returns` from `config.specs`. To avoid misinterpreting this call as having `returns` for the first parameter, consider using `magic.generateFor(input, config)` instead.')
+        } else {
+          returns = returns_or_input as MagicReturns
+          input = input_or_config as object
+        }
+        break
+      case 3:
+        if ( returns ) {
+          throw new Error('You can\'t pass in returns twice (both as the first parameter and in the config.specs.returns)')
+        } else {
+          returns = returns_or_input as MagicReturns
+          input = input_or_config as object
+          config = config_or_nothing as MagicConfig
+        }
+        break
+    }
 
     const c = Object.assign({}, this.config, config)
 
-    const { specs, examples, parameters, retries } = c
-
-    if ( !returnsPassed && !specs?.returns ) 
-      throw new Error('You must either pass in an returns parameter, or instantiate Magic with { specs: { returns: [...] } }')
+    const { openaiKey, apiUrl, descriptor, specs, examples, parameters, retries, optionalReturns } = c
 
     // const go = async (retriesLeft: number = retries || 2 ) => {
     const go: ( lastArray?: any[], retriesLeft?: number ) => Promise<any> = async ( lastArray = [], retriesLeft = retries || 2 ) => {
 
-      let data = await post(c.apiUrl, '/generate', {
+      let data = await post(apiUrl, '/generate' + ( descriptor ? `/${descriptor}` : '' ), {
         returns,
         input,
-        openAIkey: c.openaiKey,
+        openaiKey,
         specs,
         examples,
         parameters,
+        optionalReturns,
         retries
       })
 
@@ -137,7 +213,7 @@ export default class Magic {
       data = data._meta ? data : data.choices
       
       // If there was just one return, return the value instead of the object (or array of values instead of array of objects, if there are multiple choices)
-      if ( returnsPassed && typeof returns === 'string' && !c.alwaysReturnObject ) {
+      if ( typeof returns === 'string' && !c.alwaysReturnObject ) {
         // We can't just use returns as a key because the server camelCases it, so we have to just take the only key from the object
         const onlyValue = (object: object) => (object as { [key: string]: any })[Object.keys(object)[0]]
         data = Array.isArray(data) ? data.map(d => onlyValue(d)) : onlyValue(data)
@@ -186,7 +262,7 @@ export default class Magic {
 
   }
 
-  async upvote(generationId: string, config?: MagicConfig) {
+  async upvote(generationId: string, config?: MagicConfig): Promise<any> {
 
     const c = Object.assign({}, this.config, config)
 
@@ -198,11 +274,26 @@ export default class Magic {
     return data
   }
 
-  static create(config?: MagicConfig) {
+  // fork(config: MagicConfig): Magic {
+  fork(config: MagicConfig, { mergeSpecs }: ForkOptions = {}): Magic {
+    // Create a new Magic instance with the same config, but with the new config merged in
+    // return new Magic({ ...this.config, ...config })
+    return new Magic({
+      ...this.config,
+      ...config,
+      ...(
+        mergeSpecs ? {
+          specs: { ...this.config.specs, ...config.specs }
+        } : {} 
+      ) 
+    })
+  }
+
+  static create(config?: MagicConfig): Magic {
     return new Magic(config)
   }
 
-  static generate(returns: string | string[], input: object, config?: MagicConfig) {
+  static generate(returns: string | string[], input: object, config?: MagicConfig): Promise<any> {
     // (So that you can call Magic.generate() without creating a new instance. We don't do this for run() or upvote() because they are more advanced functions, but with generate we want to give people a way to instantly "feel the magic".)
     // We still need the "config" parameter because they will need to pass in their openaiKey.
     return new Magic(config).generate(returns, input)
